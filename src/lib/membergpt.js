@@ -292,24 +292,42 @@ const buildMemberContext = async () => {
   return context;
 };
 
-const callGemini = async (question, queryResult, context) => {
+/**
+ * List intents return multi-member data — only pass queryResult.data (already DB-accurate).
+ * Member-specific intents pass the single member's scan array for richer phrasing.
+ * This prevents Gemini from hallucinating names/numbers when given an overly large context.
+ */
+const LIST_INTENTS = new Set([
+  'count_members_3plus',
+  'members_lost_lean_last2',
+  'members_no_recent_scan',
+  'top_lean_improvers',
+  'member_summary',
+]);
+
+const callGemini = async (question, queryResult, memberContext) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
   const model = process.env.GEMINI_MODEL || 'gemini-flash-latest';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
+  const isListIntent = LIST_INTENTS.has(queryResult.intent);
+
   const prompt = [
-    'You are MemberGPT — an AI coaching assistant for Kalos gym coaches.',
-    'Use ONLY the provided structured query result and context JSON to answer.',
-    'If the answer cannot be derived from provided data, reply: I cannot answer that from available scan data.',
-    'Rules: be concise and complete. Max 3 sentences per item. Always finish your response — never cut off mid-sentence.',
-    'For lists: use "• Name: one-line fact" format. Never leave a list item incomplete.',
+    'You are MemberGPT — a coaching assistant for Kalos gym coaches.',
+    'STRICT RULES:',
+    '1. Use ONLY the exact names and numbers from the DATA block below. Do NOT invent, rename, or assume any data.',
+    '2. If a name or number is not in the DATA block, do not mention it.',
+    '3. Always complete your response — never cut off mid-sentence or mid-list.',
+    '4. Be concise: one line per list item using "• Name: key fact" format.',
+    '5. If data is empty or null, say so plainly.',
     '',
     `Question: ${String(question || '').trim()}`,
     `Intent: ${queryResult.intent}`,
-    `Query result: ${JSON.stringify(queryResult.data)}`,
-    `Context: ${JSON.stringify(context)}`,
+    '',
+    `DATA (source of truth — use only this):`,
+    JSON.stringify(isListIntent ? queryResult.data : memberContext, null, 0),
   ].join('\n');
 
   const res = await fetch(url, {
@@ -317,7 +335,7 @@ const callGemini = async (question, queryResult, context) => {
     headers: { 'Content-Type': 'application/json', 'X-goog-api-key': apiKey },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2, topP: 0.8, maxOutputTokens: 1024 },
+      generationConfig: { temperature: 0.1, topP: 0.8, maxOutputTokens: 1024 },
     }),
   });
 
@@ -342,8 +360,8 @@ export const answerCoachQuestion = async (question) => {
 
   if (process.env.GEMINI_API_KEY) {
     try {
-      const context = await buildMemberContext();
-      const geminiAnswer = await callGemini(q, queryResult, context);
+      const memberContext = await buildMemberContext();
+      const geminiAnswer = await callGemini(q, queryResult, memberContext);
       if (geminiAnswer) return geminiAnswer;
     } catch (error) {
       console.warn('Gemini unavailable, using fallback:', error.message);
