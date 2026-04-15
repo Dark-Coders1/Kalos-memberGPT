@@ -302,16 +302,14 @@ const callGemini = async (question, queryResult, context) => {
   const prompt = [
     'You are MemberGPT — an AI coaching assistant for Kalos gym coaches.',
     'Use ONLY the provided structured query result and context JSON to answer.',
-    'If the answer cannot be derived from provided data, reply exactly: I cannot answer that from available scan data.',
-    'Keep the answer concise, factual, and coaching-friendly. Include names and numeric evidence.',
-    'Format multi-item answers as a short bulleted list.',
+    'If the answer cannot be derived from provided data, reply: I cannot answer that from available scan data.',
+    'Rules: be concise and complete. Max 3 sentences per item. Always finish your response — never cut off mid-sentence.',
+    'For lists: use "• Name: one-line fact" format. Never leave a list item incomplete.',
     '',
     `Question: ${String(question || '').trim()}`,
-    '',
-    `Detected intent: ${queryResult.intent}`,
-    `Query result JSON: ${JSON.stringify(queryResult.data)}`,
-    '',
-    `Member context JSON: ${JSON.stringify(context)}`,
+    `Intent: ${queryResult.intent}`,
+    `Query result: ${JSON.stringify(queryResult.data)}`,
+    `Context: ${JSON.stringify(context)}`,
   ].join('\n');
 
   const res = await fetch(url, {
@@ -319,7 +317,7 @@ const callGemini = async (question, queryResult, context) => {
     headers: { 'Content-Type': 'application/json', 'X-goog-api-key': apiKey },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2, topP: 0.8, maxOutputTokens: 500 },
+      generationConfig: { temperature: 0.2, topP: 0.8, maxOutputTokens: 1024 },
     }),
   });
 
