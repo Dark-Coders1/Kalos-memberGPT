@@ -2,6 +2,30 @@
   box-sizing: border-box;
 }
 
+.skipNav {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.skipNav:focus {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  background: #1d4ed8;
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  z-index: 9999;
+  overflow: visible;
+}
+
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
