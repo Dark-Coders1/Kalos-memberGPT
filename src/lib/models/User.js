@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, index: true },
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ['member', 'coach'], default: 'member' },
+    goal: { type: String, default: '' },
   },
   { timestamps: true }
 );

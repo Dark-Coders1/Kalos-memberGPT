@@ -14,6 +14,7 @@ const scanSchema = new mongoose.Schema(
     leanMass: { type: Number, required: true },
     fatMass: { type: Number, required: true },
     visceralFat: { type: Number, default: 0 },
+    notes: { type: String, default: '' },
     source: { type: String, default: 'manual' },
   },
   { timestamps: true }
